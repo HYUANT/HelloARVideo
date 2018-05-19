@@ -11,17 +11,29 @@ package cn.easyar.samples.helloarvideo;
 import android.Manifest;
 import android.annotation.TargetApi;
 import android.content.pm.PackageManager;
+import android.content.res.AssetFileDescriptor;
 import android.content.res.Configuration;
+import android.media.AudioManager;
+import android.media.MediaPlayer;
 import android.os.Build;
 import android.os.Bundle;
+import android.os.Handler;
+import android.os.Message;
 import android.support.annotation.NonNull;
 import android.support.v7.app.AppCompatActivity;
 import android.view.Menu;
 import android.view.MenuItem;
+import android.view.SurfaceHolder;
+import android.view.SurfaceView;
+import android.view.View;
 import android.view.ViewGroup;
 import android.view.WindowManager;
 import android.util.Log;
+import android.widget.FrameLayout;
+import android.widget.Toast;
 
+import java.io.File;
+import java.io.FileDescriptor;
 import java.util.HashMap;
 
 import cn.easyar.Engine;
@@ -38,8 +50,19 @@ public class MainActivity extends AppCompatActivity
     *  3. find the created item in the list and show key
     *  4. set key string bellow
     */
+    private final static String TAG = "MainActivity";
     private static String key = "x0s8fBBGwb4krQGpU4zlLfeBAW8LQkVl2jWnhPn4WpCd1tDstrAw25KFid2Q41GbeMHvSGcxvJVAMsd6detcpIbrvaKrtJsdZKP76l43HSQ53P9MbjBnHj7HG6huGGxeQJ3J2zdZQXmXCP9k8qw91ANnTnx1apEwCSlNBfThnEODRTMp0ce7FiCE2DtoK0q6iolKNope";
     private GLView glView;
+
+    private SurfaceView videoSFView;
+    private FrameLayout frameLayout;
+
+    public static Handler handler;
+    public static String videoPath;
+
+    private MediaPlayer mediaPlayer;
+
+    private boolean hasActiveHolder = false;
 
     @Override
     protected void onCreate(Bundle savedInstanceState)
@@ -52,18 +75,131 @@ public class MainActivity extends AppCompatActivity
             Log.e("HelloAR", "Initialization Failed.");
         }
 
+        videoSFView = (SurfaceView)findViewById(R.id.videoSFView);
+        // videoSFView.getHolder().addCallback(callback);
+        // 设置Surface不维护自己的缓冲区，而是等待屏幕的渲染引擎将内容推送到界面
+        // videoSFView.getHolder().setType(SurfaceHolder.SURFACE_TYPE_PUSH_BUFFERS);
+
+        frameLayout = (FrameLayout)findViewById(R.id.preview);
         glView = new GLView(this);
 
         requestCameraPermission(new PermissionCallback() {
             @Override
             public void onSuccess() {
-                ((ViewGroup) findViewById(R.id.preview)).addView(glView, new ViewGroup.LayoutParams(ViewGroup.LayoutParams.MATCH_PARENT, ViewGroup.LayoutParams.MATCH_PARENT));
+                // ((ViewGroup) findViewById(R.id.preview)).addView(glView, new ViewGroup.LayoutParams(ViewGroup.LayoutParams.MATCH_PARENT, ViewGroup.LayoutParams.MATCH_PARENT));
+                frameLayout.addView(glView);
             }
 
             @Override
             public void onFailure() {
             }
         });
+
+        handler = new Handler(){
+            @Override
+            public void handleMessage(Message msg){
+                super.handleMessage(msg);
+                if (msg.what == 1) {
+                    // 显示videoSFView, play video
+                    frameLayout.setVisibility(View.INVISIBLE);
+                    videoSFView.setVisibility(View.VISIBLE);
+                    Log.i(TAG, "play video");
+                    playVideo(MainActivity.videoPath);
+                } else if (msg.what == 0) {
+                    // 显示glView, stop video
+                    videoSFView.setVisibility(View.INVISIBLE);
+                    frameLayout.setVisibility(View.VISIBLE);
+                    Log.i(TAG, "stop video");
+                    stopVideo();
+                }
+            }
+        };
+
+    }
+
+    // 添加一个Callback对象监听SurfaceView的变化
+    private SurfaceHolder.Callback callback = new SurfaceHolder.Callback() {
+        // SurfaceHolder被修改的时候回调
+        @Override
+        public void surfaceDestroyed(SurfaceHolder holder) {
+            // mediaPlayer.stop();
+            Log.i(TAG, "surfaceDestroyed");
+        }
+
+        //SurfaceView创建时触发
+        @Override
+        public void surfaceCreated(SurfaceHolder holder) {
+            /*
+            Log.i(TAG, "surfaceCreated");
+            synchronized (this) {
+                hasActiveHolder = true;
+                this.notifyAll();
+            }
+            */
+            Log.i(TAG, "surfaceCreated");
+        }
+
+        //SurfaceView改变时触发
+        @Override
+        public void surfaceChanged(SurfaceHolder holder, int format, int width,
+                                   int height) {
+            /*
+            Log.i(TAG, "surfaceChanged");
+            synchronized (this) {
+                hasActiveHolder = true;
+                this.notifyAll();
+            }
+            */
+            Log.i(TAG, "surfaceChanged");
+        }
+    };
+
+    protected void stopVideo() {
+
+        if (mediaPlayer != null && mediaPlayer.isPlaying()) {
+            mediaPlayer.stop();
+            mediaPlayer.release();
+            mediaPlayer = null;
+        }
+    }
+
+    protected void playVideo(String videoPath) {
+
+        try {
+            Log.i(TAG, videoPath);
+            AssetFileDescriptor fd = getAssets().openFd(videoPath.trim());
+
+            mediaPlayer = new MediaPlayer();
+            mediaPlayer.setAudioStreamType(AudioManager.STREAM_MUSIC);
+            mediaPlayer.setDataSource(fd.getFileDescriptor(), fd.getStartOffset(), fd.getLength());
+
+
+            mediaPlayer.prepare();
+
+            //等待surfaceHolder初始化完成才能执行mPlayer.setDisplay(surfaceHolder)
+            mediaPlayer.setOnPreparedListener(new MediaPlayer.OnPreparedListener() {
+                @Override
+                public void onPrepared(MediaPlayer mp) {
+                    // 把视频画面输出到SurfaceView
+                    Log.i(TAG, "mediaPlayer.start()");
+                    mediaPlayer.setDisplay(videoSFView.getHolder());
+                    mediaPlayer.start();
+                }
+            });
+
+            //视频播放完成后的操作
+            mediaPlayer.setOnCompletionListener(new MediaPlayer.OnCompletionListener() {
+                @Override
+                public void onCompletion(MediaPlayer mp) {
+                    if(mediaPlayer!=null)
+                        mediaPlayer.release();//重置mediaplayer等待下一次播放
+                }
+            });
+
+        } catch (Exception e) {
+            e.printStackTrace();
+        }
+
     }
 
     private interface PermissionCallback

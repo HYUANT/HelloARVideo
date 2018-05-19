@@ -10,6 +10,7 @@ package cn.easyar.samples.helloarvideo;
 
 import java.util.ArrayList;
 import android.opengl.GLES20;
+import android.os.Message;
 import android.util.Log;
 
 import cn.easyar.CameraCalibration;
@@ -184,6 +185,22 @@ public class HelloAR
         current_video_renderer = null;
     }
 
+    public void videobgInitGL()
+    {
+        if (videobg_renderer != null) {
+            videobg_renderer.dispose();
+        }
+        videobg_renderer = new Renderer();
+    }
+
+    public void videobgDispose()
+    {
+        if (videobg_renderer != null) {
+            videobg_renderer.dispose();
+            videobg_renderer = null;
+        }
+    }
+
     public void resizeGL(int width, int height)
     {
         view_size = new Vec2I(width, height);
@@ -250,6 +267,10 @@ public class HelloAR
                         // video.onLost();
                         // video.dispose();
                         // video  = null;
+                        videobgInitGL();
+                        Message message = new Message();
+                        message.what = 0;
+                        MainActivity.handler.sendMessage(message);
                         tracked_target = 0;
                         active_target = 0;
                     }
@@ -263,6 +284,11 @@ public class HelloAR
                             if (target_name.equals("argame")) {
                                 foundTarget = true;
                                 Log.i(TAG, "found argame");
+                                MainActivity.videoPath = "video.mp4";
+                                Message message = new Message();
+                                message.what = 1;
+                                MainActivity.handler.sendMessage(message);
+                                videobgDispose();
                                 // } else if (target_name.equals("namecard") && video_renderers.get(1).texId() != 0) {
                                 // video = new ARVideo();
                                 // video.openTransparentVideoFile("transparentvideo.mp4", video_renderers.get(1).texId());
@@ -270,6 +296,11 @@ public class HelloAR
                             } else if (target_name.equals("namecard")) {
                                 foundTarget = true;
                                 Log.i(TAG, "found namecard");
+                                MainActivity.videoPath = "transparentvideo.mp4";
+                                Message message = new Message();
+                                message.what = 1;
+                                MainActivity.handler.sendMessage(message);
+                                videobgDispose();
                                 // } else if (target_name.equals("idback") && video_renderers.get(2).texId() != 0) {
                                 // video = new ARVideo();
                                 // video.openStreamingVideo("https://sightpvideo-cdn.sightp.com/sdkvideo/EasyARSDKShow201520.mp4", video_renderers.get(2).texId());
@@ -277,6 +308,10 @@ public class HelloAR
                             } else if (target_name.equals("idback")) {
                                 foundTarget = true;
                                 Log.i(TAG, "found idback");
+                                Message message = new Message();
+                                message.what = 1;
+                                MainActivity.handler.sendMessage(message);
+                                videobgDispose();
                             }
                         // }
                         // if (video != null) {
@@ -304,6 +339,7 @@ public class HelloAR
                     // video.onLost();
                     Log.i(TAG, "lost target");
                     tracked_target = 0;
+                    videobgInitGL();
                 }
             }
 
