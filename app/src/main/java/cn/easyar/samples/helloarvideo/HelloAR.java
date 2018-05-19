@@ -338,6 +338,9 @@ public class HelloAR
                 if (tracked_target != 0) {
                     // video.onLost();
                     Log.i(TAG, "lost target");
+                    Message message = new Message();
+                    message.what = 0;
+                    MainActivity.handler.sendMessage(message);
                     tracked_target = 0;
                     videobgInitGL();
                 }
