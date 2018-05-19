@@ -15,6 +15,7 @@ import android.content.res.AssetFileDescriptor;
 import android.content.res.Configuration;
 import android.media.AudioManager;
 import android.media.MediaPlayer;
+import android.opengl.GLSurfaceView;
 import android.os.Build;
 import android.os.Bundle;
 import android.os.Handler;
@@ -55,6 +56,7 @@ public class MainActivity extends AppCompatActivity
     private GLView glView;
 
     private SurfaceView videoSFView;
+    private SurfaceHolder surfaceHolder;
     private FrameLayout frameLayout;
 
     public static Handler handler;
@@ -76,7 +78,9 @@ public class MainActivity extends AppCompatActivity
         }
 
         videoSFView = (SurfaceView)findViewById(R.id.videoSFView);
-        // videoSFView.getHolder().addCallback(callback);
+        surfaceHolder = videoSFView.getHolder();
+        surfaceHolder.setType(SurfaceHolder.SURFACE_TYPE_PUSH_BUFFERS);
+        surfaceHolder.addCallback(callback);
         // 设置Surface不维护自己的缓冲区，而是等待屏幕的渲染引擎将内容推送到界面
         // videoSFView.getHolder().setType(SurfaceHolder.SURFACE_TYPE_PUSH_BUFFERS);
 
@@ -161,6 +165,7 @@ public class MainActivity extends AppCompatActivity
             mediaPlayer.release();
             mediaPlayer = null;
         }
+
     }
 
     protected void playVideo(String videoPath) {
@@ -173,8 +178,7 @@ public class MainActivity extends AppCompatActivity
             mediaPlayer.setAudioStreamType(AudioManager.STREAM_MUSIC);
             mediaPlayer.setDataSource(fd.getFileDescriptor(), fd.getStartOffset(), fd.getLength());
 
-
-            mediaPlayer.prepare();
+            mediaPlayer.prepareAsync();
 
             //等待surfaceHolder初始化完成才能执行mPlayer.setDisplay(surfaceHolder)
             mediaPlayer.setOnPreparedListener(new MediaPlayer.OnPreparedListener() {
@@ -182,7 +186,8 @@ public class MainActivity extends AppCompatActivity
                 public void onPrepared(MediaPlayer mp) {
                     // 把视频画面输出到SurfaceView
                     Log.i(TAG, "mediaPlayer.start()");
-                    mediaPlayer.setDisplay(videoSFView.getHolder());
+                    Log.i(TAG, "mp.getVideoHeight() " + mp.getVideoHeight());
+                    mediaPlayer.setDisplay(surfaceHolder);
                     mediaPlayer.start();
                 }
             });
