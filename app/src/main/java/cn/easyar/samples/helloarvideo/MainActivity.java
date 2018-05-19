@@ -15,6 +15,7 @@ import android.content.res.AssetFileDescriptor;
 import android.content.res.Configuration;
 import android.media.AudioManager;
 import android.media.MediaPlayer;
+import android.net.Uri;
 import android.opengl.GLSurfaceView;
 import android.os.Build;
 import android.os.Bundle;
@@ -32,6 +33,7 @@ import android.view.WindowManager;
 import android.util.Log;
 import android.widget.FrameLayout;
 import android.widget.Toast;
+import android.widget.VideoView;
 
 import java.io.File;
 import java.io.FileDescriptor;
@@ -55,14 +57,19 @@ public class MainActivity extends AppCompatActivity
     private static String key = "x0s8fBBGwb4krQGpU4zlLfeBAW8LQkVl2jWnhPn4WpCd1tDstrAw25KFid2Q41GbeMHvSGcxvJVAMsd6detcpIbrvaKrtJsdZKP76l43HSQ53P9MbjBnHj7HG6huGGxeQJ3J2zdZQXmXCP9k8qw91ANnTnx1apEwCSlNBfThnEODRTMp0ce7FiCE2DtoK0q6iolKNope";
     private GLView glView;
 
+/*
     private SurfaceView videoSFView;
     private SurfaceHolder surfaceHolder;
+    private MediaPlayer mediaPlayer;
+*/
+
+    private VideoView videoView;
+
     private FrameLayout frameLayout;
 
     public static Handler handler;
     public static String videoPath;
 
-    private MediaPlayer mediaPlayer;
 
     private boolean hasActiveHolder = false;
 
@@ -77,12 +84,17 @@ public class MainActivity extends AppCompatActivity
             Log.e("HelloAR", "Initialization Failed.");
         }
 
+        videoView = (VideoView)findViewById(R.id.videoView);
+
+
+/*
         videoSFView = (SurfaceView)findViewById(R.id.videoSFView);
         surfaceHolder = videoSFView.getHolder();
         surfaceHolder.setType(SurfaceHolder.SURFACE_TYPE_PUSH_BUFFERS);
         surfaceHolder.addCallback(callback);
         // 设置Surface不维护自己的缓冲区，而是等待屏幕的渲染引擎将内容推送到界面
         // videoSFView.getHolder().setType(SurfaceHolder.SURFACE_TYPE_PUSH_BUFFERS);
+*/
 
         frameLayout = (FrameLayout)findViewById(R.id.preview);
         glView = new GLView(this);
@@ -106,12 +118,14 @@ public class MainActivity extends AppCompatActivity
                 if (msg.what == 1) {
                     // 显示videoSFView, play video
                     frameLayout.setVisibility(View.INVISIBLE);
-                    videoSFView.setVisibility(View.VISIBLE);
+                    // videoSFView.setVisibility(View.VISIBLE);
+                    videoView.setVisibility(View.VISIBLE);
                     Log.i(TAG, "play video");
                     playVideo(MainActivity.videoPath);
                 } else if (msg.what == 0) {
                     // 显示glView, stop video
-                    videoSFView.setVisibility(View.INVISIBLE);
+                    // videoSFView.setVisibility(View.INVISIBLE);
+                    videoView.setVisibility(View.INVISIBLE);
                     frameLayout.setVisibility(View.VISIBLE);
                     Log.i(TAG, "stop video");
                     stopVideo();
@@ -160,11 +174,13 @@ public class MainActivity extends AppCompatActivity
 
     protected void stopVideo() {
 
-        if (mediaPlayer != null && mediaPlayer.isPlaying()) {
+/*        if (mediaPlayer != null && mediaPlayer.isPlaying()) {
             mediaPlayer.stop();
             mediaPlayer.release();
             mediaPlayer = null;
-        }
+        }*/
+
+        videoView.pause();
 
     }
 
@@ -174,7 +190,12 @@ public class MainActivity extends AppCompatActivity
             Log.i(TAG, videoPath);
             AssetFileDescriptor fd = getAssets().openFd(videoPath.trim());
 
-            mediaPlayer = new MediaPlayer();
+            Uri videoUri = Uri.parse("android.resource://" + getPackageName() + "/" + R.raw.video);
+            // Uri videoUri = Uri.parse("file:///android_asset/" + videoPath);
+            videoView.setVideoURI(videoUri);
+            videoView.start();
+
+/*            mediaPlayer = new MediaPlayer();
             mediaPlayer.setAudioStreamType(AudioManager.STREAM_MUSIC);
             mediaPlayer.setDataSource(fd.getFileDescriptor(), fd.getStartOffset(), fd.getLength());
 
@@ -199,7 +220,7 @@ public class MainActivity extends AppCompatActivity
                     if(mediaPlayer!=null)
                         mediaPlayer.release();//重置mediaplayer等待下一次播放
                 }
-            });
+            });*/
 
         } catch (Exception e) {
             e.printStackTrace();
@@ -283,4 +304,5 @@ public class MainActivity extends AppCompatActivity
 
         return super.onOptionsItemSelected(item);
     }
+
 }
