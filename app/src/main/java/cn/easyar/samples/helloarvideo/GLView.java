@@ -54,7 +54,7 @@ public class GLView extends GLSurfaceView
                 }
             }
         });
-        this.setZOrderMediaOverlay(true);
+        // this.setZOrderMediaOverlay(true);
     }
 
     @Override

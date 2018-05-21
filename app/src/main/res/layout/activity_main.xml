@@ -8,14 +8,8 @@
         android:layout_width="match_parent"
         android:layout_height="match_parent" />
 
-<!--    <SurfaceView
-        android:id="@+id/videoSFView"
-        android:visibility="gone"
-        android:layout_width="match_parent"
-        android:layout_height="match_parent" />-->
-
-    <VideoView
-        android:id="@+id/videoView"
+   <TextureView
+        android:id="@+id/videoTTView"
         android:visibility="gone"
         android:layout_width="match_parent"
         android:layout_height="match_parent" />
