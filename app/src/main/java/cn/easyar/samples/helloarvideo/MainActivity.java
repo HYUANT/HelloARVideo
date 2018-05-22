@@ -86,6 +86,7 @@ public class MainActivity extends AppCompatActivity {
             @Override
             public boolean onSurfaceTextureDestroyed(SurfaceTexture surfaceTexture) {
                 Log.i(TAG, "onSurfaceTextureDestroyed");
+                mSurfaceTexture = null;
                 stopVideo();
                 return false;
             }
@@ -135,40 +136,50 @@ public class MainActivity extends AppCompatActivity {
         int viewHeight = videoTTView.getHeight();
 
         Log.i(TAG, "viewHeight=" + viewHeight + " viewWidth=" + viewWidth + " videoHeight=" + videoHeight + " videoWidth=" + videoWidth);
+
         if (videoHeight < videoWidth) {
+            Log.i(TAG, "videoHeight < videoWidth");
             // 视频高度 < 宽度，而全屏情况下videoTTView高度 > 宽度，因此需要交换视频高度、宽度并旋转TextureView
             videoHeight = viewHeight + videoWidth;
             videoWidth = videoHeight - videoWidth;
             videoHeight = videoHeight - videoWidth;
             videoTTView.setRotation(90);
-        }
 
-        double aspectRatio = (double) videoHeight / videoWidth;
-        int newWidth, newHeight;
-        if (viewHeight > (int) (viewWidth * aspectRatio)) {
-            // limited by narrow width; restrict height
-            newWidth = viewWidth;
-            newHeight = (int) (viewWidth * aspectRatio);
+            double aspectRatio = (double) videoHeight / videoWidth;
+            int newWidth, newHeight;
+            if (viewHeight > (int) (viewWidth * aspectRatio)) {
+                // limited by narrow width; restrict height
+                newWidth = viewWidth;
+                newHeight = (int) (viewWidth * aspectRatio);
+            } else {
+                // limited by short height; restrict width
+                newWidth = (int) (viewHeight / aspectRatio);
+                newHeight = viewHeight;
+            }
+            int xOff = (viewWidth - newWidth) / 2;
+            int yOff = (viewHeight - newHeight) / 2;
+
+            Log.v(TAG, "video=" + videoWidth + "x" + videoHeight + " view=" + viewWidth + "x" + viewHeight
+                    + " newView=" + newWidth + "x" + newHeight + " off=" + xOff + "," + yOff);
+
+            Matrix txForm = new Matrix();
+            videoTTView.getTransform(txForm);
+            txForm.setScale((float) newWidth / viewWidth, (float) newHeight / viewHeight);
+            txForm.postTranslate(xOff, yOff);
+            videoTTView.setTransform(txForm);
+
+            // 放大videoTTView至全屏
+            videoTTView.setScaleX((float) viewHeight / newWidth);
+            videoTTView.setScaleY((float) viewWidth / newHeight);
         } else {
-            // limited by short height; restrict width
-            newWidth = (int) (viewHeight / aspectRatio);
-            newHeight = viewHeight;
+            Log.i(TAG, "videoHeight >= videoWidth");
+            videoTTView.setRotation(0);
+            videoTTView.setScaleX(1f);
+            videoTTView.setScaleY(1f);
+            videoTTView.setTransform(null);
         }
-        int xOff = (viewWidth - newWidth) / 2;
-        int yOff = (viewHeight - newHeight) / 2;
 
-        Log.v(TAG, "video=" + videoWidth + "x" + videoHeight + " view=" + viewWidth + "x" + viewHeight
-                + " newView=" + newWidth + "x" + newHeight + " off=" + xOff + "," + yOff);
 
-        Matrix txForm = new Matrix();
-        videoTTView.getTransform(txForm);
-        txForm.setScale((float) newWidth / viewWidth, (float) newHeight / viewHeight);
-        txForm.postTranslate(xOff, yOff);
-        videoTTView.setTransform(txForm);
-
-        // 放大videoTTView至全屏
-        videoTTView.setScaleX((float) viewHeight / newWidth);
-        videoTTView.setScaleY((float) viewWidth / newHeight);
     }
 
     protected void stopVideo() {
